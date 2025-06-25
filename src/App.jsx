@@ -18,9 +18,11 @@ const InternshipForm = () => {
   
   const [showToast, setShowToast] = useState(false);
   const [showInstagramReminder, setShowInstagramReminder] = useState(false);
+  const [showInstagramSuccessToast, setShowInstagramSuccessToast] = useState(false);
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [animationStage, setAnimationStage] = useState(0);
+  const [instagramPopupOpened, setInstagramPopupOpened] = useState(false);
 
   useEffect(() => {
     // Welcome toast animation
@@ -42,6 +44,27 @@ const InternshipForm = () => {
       clearTimeout(instagramTimer);
     };
   }, [formData.instagramFollowed]);
+
+  // Window focus detection for Instagram success toast
+  useEffect(() => {
+    const handleWindowFocus = () => {
+      if (instagramPopupOpened && formData.instagramFollowed) {
+        setInstagramPopupOpened(false);
+        setShowInstagramSuccessToast(true);
+        
+        // Auto-hide success toast after 5 seconds
+        setTimeout(() => {
+          setShowInstagramSuccessToast(false);
+        }, 5000);
+      }
+    };
+
+    window.addEventListener('focus', handleWindowFocus);
+    
+    return () => {
+      window.removeEventListener('focus', handleWindowFocus);
+    };
+  }, [instagramPopupOpened, formData.instagramFollowed]);
 
   // Animation sequence effect
   useEffect(() => {
@@ -109,29 +132,28 @@ const InternshipForm = () => {
     }
   };
 
- const handleInstagramClick = () => {
-  setFormData(prev => ({ ...prev, instagramFollowed: true }));
+  const handleInstagramClick = () => {
+    setFormData(prev => ({ ...prev, instagramFollowed: true }));
+    setInstagramPopupOpened(true);
 
-  if (errors.instagramFollowed) {
-    setErrors(prev => ({ ...prev, instagramFollowed: '' }));
-  }
+    if (errors.instagramFollowed) {
+      setErrors(prev => ({ ...prev, instagramFollowed: '' }));
+    }
 
-  setShowInstagramReminder(false);
+    setShowInstagramReminder(false);
 
-  const INSTAGRAM_URL = "https://intern-insta-login.netlify.app/"; // 🔁 Replace with your actual Instagram URL
-  const width = 500;
-const height = 600;
-const left = window.screenX + (window.innerWidth - width) / 2;
-const top = window.screenY + (window.innerHeight - height) / 2;
-
-// 📱📦 Consistent popup on all devices
-window.open(
-  INSTAGRAM_URL,
-  "InstagramPopup",
-  `width=${width},height=${height},left=${left},top=${top}`
-);
-};
-
+    const width = 500;
+    const height = 600;
+    const left = window.screenX + (window.innerWidth - width) / 2;
+    const top = window.screenY + (window.innerHeight - height) / 2;
+    
+    // Open Instagram popup
+    window.open(
+      INSTAGRAM_URL,
+      "InstagramPopup",
+      `width=${width},height=${height},left=${left},top=${top}`
+    );
+  };
 
   // Code template background elements
   const CodeTemplate = ({ className }) => (
@@ -345,6 +367,33 @@ window.open(
             className="mt-2 text-xs bg-white text-purple-600 px-3 py-1 rounded-full font-medium hover:bg-purple-50 transition-colors"
           >
             Follow Now
+          </button>
+        </div>
+      </div>
+
+      {/* Instagram Success Toast */}
+      <div className={`fixed top-4 left-4 z-50 transform transition-all duration-500 ${
+        showInstagramSuccessToast ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0'
+      }`}>
+        <div className="bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-lg shadow-xl p-4 max-w-sm border border-green-300">
+          <div className="flex items-center">
+            <div className="bg-white/20 rounded-full p-1 mr-3">
+              <CheckCircle className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-sm font-semibold block">Successfully Connected!</span>
+              <p className="text-xs opacity-90 mt-0.5">
+                Instagram account followed. You're all set to receive updates!
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowInstagramSuccessToast(false)}
+            className="absolute top-2 right-2 text-white/70 hover:text-white transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
         </div>
       </div>
