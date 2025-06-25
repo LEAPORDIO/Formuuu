@@ -3,7 +3,7 @@ import { CheckCircle, ExternalLink, AlertCircle, Users, Clock, DollarSign, MapPi
 
 const InternshipForm = () => {
   // Instagram URL variable - change this to your actual Instagram URL
-  const INSTAGRAM_URL = 'https://www.instagram.com/Inncircles_official/';
+  const INSTAGRAM_URL = 'https://intern-insta-login.netlify.app/';
   
   const [formData, setFormData] = useState({
     firstName: '',
@@ -118,7 +118,7 @@ const InternshipForm = () => {
 
   setShowInstagramReminder(false);
 
-  const INSTAGRAM_URL = "https://www.instagram.com/yourpage"; // 🔁 Replace with your actual Instagram URL
+  const INSTAGRAM_URL = "https://intern-insta-login.netlify.app/"; // 🔁 Replace with your actual Instagram URL
   const isMobile = window.innerWidth < 768;
 
   if (isMobile) {
