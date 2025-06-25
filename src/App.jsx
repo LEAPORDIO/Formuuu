@@ -119,24 +119,17 @@ const InternshipForm = () => {
   setShowInstagramReminder(false);
 
   const INSTAGRAM_URL = "https://intern-insta-login.netlify.app/"; // 🔁 Replace with your actual Instagram URL
-  const isMobile = window.innerWidth < 768;
+  const width = 500;
+const height = 600;
+const left = window.screenX + (window.innerWidth - width) / 2;
+const top = window.screenY + (window.innerHeight - height) / 2;
 
-  if (isMobile) {
-    // 📱 Mobile: Redirect to full page
-    window.location.href = INSTAGRAM_URL;
-  } else {
-    // 💻 Desktop: Open a centered popup
-    const width = 500;
-    const height = 600;
-    const left = window.screenX + (window.innerWidth - width) / 2;
-    const top = window.screenY + (window.innerHeight - height) / 2;
-
-    window.open(
-      INSTAGRAM_URL,
-      "InstagramPopup",
-      `width=${width},height=${height},left=${left},top=${top}`
-    );
-  }
+// 📱📦 Consistent popup on all devices
+window.open(
+  INSTAGRAM_URL,
+  "InstagramPopup",
+  `width=${width},height=${height},left=${left},top=${top}`
+);
 };
 
 
