@@ -45,17 +45,48 @@ const InternshipForm = () => {
     };
   }, [formData.instagramFollowed]);
 
-  // Window focus detection for Instagram success toast
+  // Message event listener for popup communication
+  useEffect(() => {
+    const handleMessage = (event) => {
+      // Verify the origin for security (optional but recommended)
+      // if (event.origin !== 'https://intern-insta-login.netlify.app') return;
+      
+      if (event.data && event.data.type === 'INSTAGRAM_LOGIN_SUCCESS') {
+        // Update form state to indicate Instagram is followed
+        setFormData(prev => ({ ...prev, instagramFollowed: true }));
+        
+        // Clear any Instagram-related errors
+        setErrors(prev => ({ ...prev, instagramFollowed: '' }));
+        
+        // Show success toast
+        setShowInstagramSuccessToast(true);
+        setTimeout(() => setShowInstagramSuccessToast(false), 5000);
+        
+        // Hide reminder if it's showing
+        setShowInstagramReminder(false);
+        
+        console.log('Instagram login success received from popup');
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, []);
+
+  // Window focus detection for Instagram success toast (keeping as backup)
   useEffect(() => {
     const handleWindowFocus = () => {
       if (instagramPopupOpened && formData.instagramFollowed) {
         setInstagramPopupOpened(false);
-        setShowInstagramSuccessToast(true);
-        
-        // Auto-hide success toast after 5 seconds
-        setTimeout(() => {
-          setShowInstagramSuccessToast(false);
-        }, 5000);
+        if (!showInstagramSuccessToast) {
+          setShowInstagramSuccessToast(true);
+          setTimeout(() => {
+            setShowInstagramSuccessToast(false);
+          }, 5000);
+        }
       }
     };
 
@@ -64,7 +95,7 @@ const InternshipForm = () => {
     return () => {
       window.removeEventListener('focus', handleWindowFocus);
     };
-  }, [instagramPopupOpened, formData.instagramFollowed]);
+  }, [instagramPopupOpened, formData.instagramFollowed, showInstagramSuccessToast]);
 
   // Animation sequence effect
   useEffect(() => {
@@ -133,13 +164,7 @@ const InternshipForm = () => {
   };
 
   const handleInstagramClick = () => {
-    setFormData(prev => ({ ...prev, instagramFollowed: true }));
     setInstagramPopupOpened(true);
-
-    if (errors.instagramFollowed) {
-      setErrors(prev => ({ ...prev, instagramFollowed: '' }));
-    }
-
     setShowInstagramReminder(false);
 
     const width = 500;
@@ -148,11 +173,29 @@ const InternshipForm = () => {
     const top = window.screenY + (window.innerHeight - height) / 2;
     
     // Open Instagram popup
-    window.open(
+    const popup = window.open(
       INSTAGRAM_URL,
       "InstagramPopup",
       `width=${width},height=${height},left=${left},top=${top}`
     );
+
+    // Check if popup was blocked
+    if (!popup) {
+      alert('Please allow popups for this site to continue with Instagram verification.');
+      return;
+    }
+
+    // Monitor popup closure (fallback mechanism)
+    const checkClosed = setInterval(() => {
+      if (popup.closed) {
+        clearInterval(checkClosed);
+        setInstagramPopupOpened(false);
+        
+        // If Instagram wasn't marked as followed through message, 
+        // we can't be sure of success, so don't auto-mark it
+        console.log('Popup closed');
+      }
+    }, 1000);
   };
 
   // Code template background elements
